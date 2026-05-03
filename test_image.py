@@ -1,24 +1,58 @@
-import tensorflow as tf
-import numpy as np
+from pathlib import Path
+import json
 import sys
 
-# 1. Charger le cerveau de l'IA  
-model = tf.keras.models.load_model('modele_pfe_dechets.h5')
-class_names = ['cardboard', 'glass', 'metal', 'paper', 'plastic', 'trash']
+import numpy as np
+import tensorflow as tf
 
-# 2. FONCTION POUR PRÉDIRE
+
+MODEL_PATH = Path("modele_pfe_dechets.keras")
+LEGACY_MODEL_PATH = Path("modele_pfe_dechets.h5")
+CLASS_NAMES_PATH = Path("class_names.json")
+DEFAULT_IMAGE = Path("trashnet/dataset_split/test/plastic/plastic410.jpg")
+
+
+def load_model():
+    if MODEL_PATH.exists():
+        return tf.keras.models.load_model(MODEL_PATH)
+    if LEGACY_MODEL_PATH.exists():
+        return tf.keras.models.load_model(LEGACY_MODEL_PATH)
+    raise FileNotFoundError(
+        f"Aucun modele trouve. Lance d'abord train_ia.py pour creer {MODEL_PATH}."
+    )
+
+
+def load_class_names():
+    if CLASS_NAMES_PATH.exists():
+        return json.loads(CLASS_NAMES_PATH.read_text(encoding="utf-8"))
+    return ["cardboard", "glass", "metal", "paper", "plastic", "trash"]
+
+
 def predire_dechet(chemin_image):
-    # Charger et redimensionner l'image comme pendant l'entraînement
-    img = tf.keras.utils.load_img(chemin_image, target_size=(224, 224))
+    image_path = Path(chemin_image)
+    if not image_path.exists():
+        raise FileNotFoundError(f"Image introuvable : {image_path}")
+
+    img = tf.keras.utils.load_img(image_path, target_size=(224, 224))
     img_array = tf.keras.utils.img_to_array(img)
-    img_array = tf.expand_dims(img_array, 0) # Créer un paquet d'une image
+    img_array = tf.expand_dims(img_array, 0)
 
-    # Faire la prédiction
-    predictions = model.predict(img_array)
-    score = tf.nn.softmax(predictions[0])
+    predictions = model.predict(img_array, verbose=0)[0]
+    best_index = int(np.argmax(predictions))
+    confidence = float(predictions[best_index])
 
-    print(f"\n🔍 Résultat pour {chemin_image} :")
-    print(f"C'est du **{class_names[np.argmax(score)]}** (Confiance : {100 * np.max(score):.2f}%)")
+    print(f"\nResultat pour {image_path} :")
+    print(f"Classe predite : {class_names[best_index]}")
+    print(f"Confiance : {confidence * 100:.2f}%")
 
-# 3. TESTER UNE IMAGE
-predire_dechet('trashnet/dataset_split/test/plastic/plastic410.jpg')
+    top_indices = np.argsort(predictions)[::-1][:3]
+    print("\nTop 3 :")
+    for index in top_indices:
+        print(f"- {class_names[int(index)]}: {float(predictions[index]) * 100:.2f}%")
+
+
+model = load_model()
+class_names = load_class_names()
+
+image_to_test = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_IMAGE
+predire_dechet(image_to_test)

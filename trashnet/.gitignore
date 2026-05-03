@@ -12,6 +12,7 @@ venv/
 
 # Model files
 *.h5
+*.keras
 *.pt
 *.pth
 *.ckpt

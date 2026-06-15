@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tri IA - Classification des dechets</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Classification d'images par IA</p>
+          <h1>Tri IA</h1>
+          <p class="lead">
+            Importez une photo de dechet et obtenez une prediction claire:
+            carton, verre, metal, papier, plastique ou dechet residuel.
+          </p>
+          <div class="stats" aria-label="Categories disponibles">
+            <span>6 categories</span>
+            <span>MobileNetV2</span>
+            <span>Prediction locale</span>
+          </div>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="bin bin-cardboard">Carton</div>
+          <div class="bin bin-glass">Verre</div>
+          <div class="bin bin-metal">Metal</div>
+          <div class="bin bin-paper">Papier</div>
+          <div class="bin bin-plastic">Plastique</div>
+          <div class="bin bin-trash">Autre</div>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="Analyse d'image">
+        <form id="uploadForm" class="upload-panel" method="post" action="/predict" enctype="multipart/form-data">
+          <label id="dropZone" class="drop-zone" for="imageInput">
+            <input id="imageInput" name="image" type="file" accept="image/png,image/jpeg,image/webp">
+            <span class="drop-icon">+</span>
+            <span class="drop-title">Deposer une image</span>
+            <span class="drop-text">Image locale JPG, PNG ou WebP</span>
+          </label>
+          <div class="separator"><span>ou</span></div>
+          <label class="url-field" for="imageUrlInput">
+            <span>URL d'une image</span>
+            <input id="imageUrlInput" name="image_url" type="url" placeholder="https://exemple.com/image-carton.jpg">
+          </label>
+          <div class="actions">
+            <button id="predictButton" type="submit">Analyser l'image</button>
+            <button id="resetButton" type="button" class="secondary">Reinitialiser</button>
+          </div>
+          <p id="statusText" class="status" role="status"></p>
+        </form>
+
+        <aside class="result-panel" aria-label="Resultat de classification">
+          <div class="preview-frame">
+            <img id="previewImage" alt="Apercu de l'image importee">
+            <div id="emptyPreview" class="empty-preview">Apercu</div>
+          </div>
+          <div id="resultContent" class="result-content">
+            <p class="result-kicker">Resultat</p>
+            <h2 id="resultLabel">En attente d'analyse</h2>
+            <div class="confidence">
+              <div class="confidence-head">
+                <span>Confiance</span>
+                <strong id="confidenceValue">0%</strong>
+              </div>
+              <div class="meter"><span id="confidenceBar"></span></div>
+            </div>
+            <p id="sortingTip" class="tip">Le conseil de tri apparaitra ici apres prediction.</p>
+            <div id="topPredictions" class="top-list" aria-label="Top 3 des predictions"></div>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  </body>
+</html>

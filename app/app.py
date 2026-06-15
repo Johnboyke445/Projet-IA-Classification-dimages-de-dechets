@@ -1,44 +1,39 @@
 import streamlit as st
 from PIL import Image
-import numpy as np
-import tensorflow as tf
 from pathlib import Path
+from uuid import uuid4
 
-MODEL_PATH = Path(__file__).parent.parent / "modele_pfe_dechets.h5"
-CLASS_NAMES = ["cardboard", "glass", "metal", "paper", "plastic", "trash"]
-
-
-@st.cache_resource
-def load_model():
-    return tf.keras.models.load_model(MODEL_PATH)
+from predictor import predict_image
 
 
-def classifier(image, model):
-    img = image.resize((224, 224))
-    img_array = tf.keras.utils.img_to_array(img)
-    img_array = tf.expand_dims(img_array, 0)
-    classification = model.predict(img_array, verbose=0)[0]
-    best_index = int(np.argmax(classification))
-    return classification, best_index
+ROOT_DIR = Path(__file__).resolve().parent.parent
+UPLOAD_DIR = ROOT_DIR / "static" / "uploads"
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
-st.title("♻️ RecyclAI - Classification des déchets")
-st.write("Charge une image d'un déchet 👇")
+def save_uploaded_image(uploaded_file):
+    extension = Path(uploaded_file.name).suffix.lower()
+    image_path = UPLOAD_DIR / f"{uuid4().hex}{extension}"
+    image_path.write_bytes(uploaded_file.getvalue())
+    return image_path
+
+
+st.title("RecyclAI - Classification des dechets")
+st.write("Charge une image d'un dechet")
 
 uploaded_file = st.file_uploader("Choisir une image", type=["jpg", "png", "jpeg"])
 
 if uploaded_file is not None:
     image = Image.open(uploaded_file)
-    st.image(image, caption="Image chargée")
+    st.image(image, caption="Image chargee")
 
     if st.button("Classifier l'image"):
-        model = load_model()
-        classification, best_index = classifier(image, model)
+        image_path = save_uploaded_image(uploaded_file)
+        result = predict_image(image_path)
 
-        st.success(f"Catégorie : {CLASS_NAMES[best_index]}")
-        st.write(f"Confiance : {classification[best_index] * 100:.2f}%")
+        st.success(f"Categorie : {result['label'].lower()}")
+        st.write(f"Confiance : {result['confidence']:.2f} %")
 
         st.write("**Top 3 :**")
-        top_indices = np.argsort(classification)[::-1][:3]
-        for i in top_indices:
-            st.write(f"- {CLASS_NAMES[i]} : {classification[i] * 100:.2f}%")
+        for item in result["top_predictions"]:
+            st.write(f"- {item['label'].lower()} : {item['confidence']:.2f} %")

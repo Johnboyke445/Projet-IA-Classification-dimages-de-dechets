@@ -18,6 +18,10 @@ venv/
 
 # Generated metadata
 class_names.json
+static/uploads/*
+!static/uploads/.gitkeep
+flask-server.*.log
+streamlit-server.*.log
 
 # Editors / OS
 .vscode/

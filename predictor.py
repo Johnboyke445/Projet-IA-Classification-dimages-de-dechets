@@ -38,31 +38,36 @@ SORTING_TIPS_FR = {
 }
 
 
-class CompatibleBatchNormalization(tf.keras.layers.BatchNormalization):
-    def __init__(
-        self,
-        *args,
-        renorm=False,
-        renorm_clipping=None,
-        renorm_momentum=None,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
+def patch_batch_normalization_deserialization():
+    batch_norm = tf.keras.layers.BatchNormalization
+    if getattr(batch_norm, "_recyclia_compat_patch", False):
+        return
+
+    original_from_config = batch_norm.from_config
+
+    @classmethod
+    def from_config(cls, config):
+        config = dict(config)
+        config.pop("renorm", None)
+        config.pop("renorm_clipping", None)
+        config.pop("renorm_momentum", None)
+        return original_from_config(config)
+
+    batch_norm.from_config = from_config
+    batch_norm._recyclia_compat_patch = True
 
 
 @lru_cache(maxsize=1)
 def load_model():
-    custom_objects = {"BatchNormalization": CompatibleBatchNormalization}
+    patch_batch_normalization_deserialization()
     if MODEL_PATH.exists():
         return tf.keras.models.load_model(
             MODEL_PATH,
-            custom_objects=custom_objects,
             compile=False,
         )
     if LEGACY_MODEL_PATH.exists():
         return tf.keras.models.load_model(
             LEGACY_MODEL_PATH,
-            custom_objects=custom_objects,
             compile=False,
         )
     raise FileNotFoundError(

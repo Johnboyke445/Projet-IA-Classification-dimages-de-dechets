@@ -38,28 +38,37 @@ SORTING_TIPS_FR = {
 }
 
 
-def patch_batch_normalization_deserialization():
-    batch_norm = tf.keras.layers.BatchNormalization
-    if getattr(batch_norm, "_recyclia_compat_patch", False):
+def patch_layer_from_config(layer_class, ignored_keys):
+    if getattr(layer_class, "_recyclia_compat_patch", False):
         return
 
-    original_from_config = batch_norm.from_config
+    original_from_config = layer_class.from_config
 
     @classmethod
     def from_config(cls, config):
         config = dict(config)
-        config.pop("renorm", None)
-        config.pop("renorm_clipping", None)
-        config.pop("renorm_momentum", None)
+        for key in ignored_keys:
+            config.pop(key, None)
         return original_from_config(config)
 
-    batch_norm.from_config = from_config
-    batch_norm._recyclia_compat_patch = True
+    layer_class.from_config = from_config
+    layer_class._recyclia_compat_patch = True
+
+
+def patch_model_deserialization():
+    patch_layer_from_config(
+        tf.keras.layers.BatchNormalization,
+        {"renorm", "renorm_clipping", "renorm_momentum"},
+    )
+    patch_layer_from_config(
+        tf.keras.layers.Dense,
+        {"quantization_config"},
+    )
 
 
 @lru_cache(maxsize=1)
 def load_model():
-    patch_batch_normalization_deserialization()
+    patch_model_deserialization()
     if MODEL_PATH.exists():
         return tf.keras.models.load_model(
             MODEL_PATH,

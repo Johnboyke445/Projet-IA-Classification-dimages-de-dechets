@@ -38,12 +38,33 @@ SORTING_TIPS_FR = {
 }
 
 
+class CompatibleBatchNormalization(tf.keras.layers.BatchNormalization):
+    def __init__(
+        self,
+        *args,
+        renorm=False,
+        renorm_clipping=None,
+        renorm_momentum=None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+
+
 @lru_cache(maxsize=1)
 def load_model():
+    custom_objects = {"BatchNormalization": CompatibleBatchNormalization}
     if MODEL_PATH.exists():
-        return tf.keras.models.load_model(MODEL_PATH)
+        return tf.keras.models.load_model(
+            MODEL_PATH,
+            custom_objects=custom_objects,
+            compile=False,
+        )
     if LEGACY_MODEL_PATH.exists():
-        return tf.keras.models.load_model(LEGACY_MODEL_PATH)
+        return tf.keras.models.load_model(
+            LEGACY_MODEL_PATH,
+            custom_objects=custom_objects,
+            compile=False,
+        )
     raise FileNotFoundError(
         f"Aucun modele trouve. Lancez d'abord train_ia.py pour creer {MODEL_PATH.name}."
     )

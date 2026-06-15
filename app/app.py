@@ -1,12 +1,17 @@
+from pathlib import Path
+import sys
+from uuid import uuid4
+
 import streamlit as st
 from PIL import Image
-from pathlib import Path
-from uuid import uuid4
+
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT_DIR))
 
 from predictor import predict_image
 
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
 UPLOAD_DIR = ROOT_DIR / "static" / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
